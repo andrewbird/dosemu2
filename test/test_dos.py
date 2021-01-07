@@ -31,6 +31,7 @@ from func_ds3_share_open_access import ds3_share_open_access
 from func_ds3_share_open_twice import ds3_share_open_twice
 from func_lfs_file_info import lfs_file_info
 from func_lfs_file_seek_tell import lfs_file_seek_tell
+from func_perms_check_rmdir import perms_check_rmdir
 
 SYSTYPE_DRDOS_ENHANCED = "Enhanced DR-DOS"
 SYSTYPE_DRDOS_ORIGINAL = "Original DR-DOS"
@@ -4856,6 +4857,10 @@ $_floppy_a = ""
         if len(missing):
             msg = "Output file(s) missing %s\n" % str(missing)
             raise self.failureException(msg)
+
+    def test_fat_sfn_perms_check_rmdir(self):
+        """FAT SFN Permission check on rmdir"""
+        perms_check_rmdir(self, "FAT", "SFN")
 
 
 class DRDOS701TestCase(OurTestCase, unittest.TestCase):
