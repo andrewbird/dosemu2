@@ -172,6 +172,7 @@ typedef struct config_info {
        int dumb_video;
        int tty_stderr;
        int vga;
+       boolean clipboard;
        boolean X;
        boolean X_fullscreen;
        boolean sdl;

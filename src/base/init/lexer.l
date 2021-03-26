@@ -561,6 +561,8 @@ plainvga		MAY_BE { yylval->i_value = PLAINVGA; return(CHIPSET_TYPE); }
 svgalib			MAY_BE { yylval->i_value = SVGALIB; return(CHIPSET_TYPE); }
 vesa			MAY_BE { yylval->i_value = VESA; return(CHIPSET_TYPE); }
 
+clipboard_support	RETURN(CLIPBOARD_SUPPORT);
+
 	/* xwindows stuff */
 
 display			RETURN(L_DISPLAY);

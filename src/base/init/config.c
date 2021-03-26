@@ -16,6 +16,7 @@
 #include "emu.h"
 #include "timers.h"
 #include "video.h"
+#include "clipboard.h"
 #include "vc.h"
 #include "mouse.h"
 #include "serial.h"
@@ -195,6 +196,7 @@ void dump_config_status(void (*printfunc)(const char *, ...))
         config.fdisks, config.hdisks);
     (*print)("term_esc_char 0x%x\nterm_color %d\n",
         config.term_esc_char, config.term_color);
+    (*print)("clipboard %i\n", config.clipboard);
     (*print)("xterm_title\n", config.xterm_title);
     (*print)("X_display \"%s\"\nX_title \"%s\"\nX_icon_name \"%s\"\n",
         (config.X_display ? config.X_display :""), config.X_title, config.X_icon_name);
@@ -1080,6 +1082,7 @@ config_init(int argc, char **argv)
     our_envs_init();
     parse_debugflags("+cw", 1);
     Video = NULL;
+    Clipboard = NULL;
 
     /* options get parsed twice so show our own errors and only once */
     opterr = 0;
