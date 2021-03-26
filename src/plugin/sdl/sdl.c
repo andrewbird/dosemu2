@@ -24,6 +24,9 @@
 #include <stdio.h>
 #include <stdlib.h>		/* for malloc & free */
 #include <string.h>		/* for memset */
+#ifdef HAVE_LIBBSD
+#include <bsd/string.h>
+#endif
 #include <unistd.h>
 #include <limits.h>
 #include <fcntl.h>
@@ -43,6 +46,7 @@
 #include "sig.h"
 #include "bios.h"
 #include "video.h"
+#include "clipboard.h"
 #include "memory.h"
 #include "vgaemu.h"
 #include "vgatext.h"
@@ -73,6 +77,8 @@ static void unlock_surface(void);
 #if THREADED_REND
 static void *render_thread(void *arg);
 #endif
+
+static struct clipboard_system Clipboard_SDL;
 
 #if defined(HAVE_SDL2_TTF) && defined(HAVE_FONTCONFIG)
 static void setup_ttf_winsize(int xtarget, int ytarget);
@@ -182,6 +188,8 @@ void SDL_pre_init(void)
   err = SDL_Init(0);
   if (err)
     return;
+
+  register_clipboard_system(&Clipboard_SDL);
 
   register_exit_handler(SDL_done);
 }
@@ -1316,6 +1324,174 @@ static void SDL_handle_events(void)
     }
   }
 }
+
+static int clipboard_clear(void) {
+  if (SDL_SetClipboardText("")) {
+    v_printf("SDL_clipboard: Clear failed, error '%s'\n", SDL_GetError());
+    return FALSE;
+  }
+  return TRUE;
+}
+
+static int clipboard_write(int type, const char *p, int size)
+{
+  char *q;
+  int ret;
+
+  /* Note:
+   *   1/ size includes the terminating nul
+   *   2/ SDL_SetClipboardText converts CR/LF -> LF/LF/LF
+   */
+  if (type != CF_TEXT && type != CF_OEMTEXT) {
+    v_printf("SDL_clipboard: Write failed, type (0x%02x) unsupported\n", type);
+    return FALSE;
+  }
+
+  if (type == CF_TEXT) {
+    v_printf("SDL_clipboard: Write of (%d) bytes of CF_TEXT\n", size);
+    q = malloc(size);
+    if (!q) {
+      v_printf("SDL_clipboard: Write failed (malloc %d bytes\n", size);
+      return FALSE;
+    }
+    strlcpy(q, p, size);
+
+  } else { // CF_OEMTEXT
+    v_printf("SDL_clipboard: Write of (%d) bytes of CF_OEMTEXT\n", size);
+
+    struct char_set_state state;
+    int characters;
+    t_unicode *str;
+
+    init_charset_state(&state, trconfig.dos_charset);
+
+    characters = character_count(&state, p, size);
+    if (characters == -1) {
+      v_printf("SDL_clipboard: Write invalid char count\n");
+      return FALSE;
+    }
+
+    str = malloc(sizeof(t_unicode) * (characters + 1));
+    charset_to_unicode_string(&state, str, &p, size, characters + 1);
+    cleanup_charset_state(&state);
+    q = unicode_string_to_charset((wchar_t *)str, "utf8");
+    free(str);
+  }
+
+  ret = SDL_SetClipboardText(q);
+  free(q);
+  return ret == 0 ? TRUE : FALSE;
+}
+
+
+static char *_clipboard_grabbed_data = NULL;
+
+static int _clipboard_grab_data(int type)
+{
+  char *q;
+  const char *r;
+
+  if (type != CF_TEXT && type != CF_OEMTEXT)
+    return FALSE;
+
+  if (SDL_HasClipboardText() == FALSE) {
+    q = strdup("");
+    goto done;
+  }
+
+  r = SDL_GetClipboardText();
+  if (!r) {
+    v_printf("SDL_clipboard: _clipboard_grab_data() read failed (error '%s')\n", SDL_GetError());
+    return FALSE;
+  }
+
+  if (type == CF_TEXT) {
+    q = strdup(r);
+  } else { // CF_OEMTEXT
+
+    struct char_set_state state;
+    struct char_set *utf8;
+    int characters;
+    t_unicode *str;
+    int size = 256;
+
+    utf8 = lookup_charset("utf8");
+    init_charset_state(&state, utf8);
+
+    characters = character_count(&state, r, size);
+    if (characters == -1) {
+      v_printf("SDL_clipboard: _clipboard_grab_data()  invalid char count\n");
+      return FALSE;
+    }
+
+    str = malloc(sizeof(t_unicode) * (characters + 1));
+    charset_to_unicode_string(&state, str, &r, size, characters + 1);
+    cleanup_charset_state(&state);
+    q = unicode_string_to_charset((wchar_t *)str, trconfig.dos_charset->names[0]);
+    free(str);
+  }
+
+done:
+  free(_clipboard_grabbed_data);
+  _clipboard_grabbed_data = q;
+  return TRUE;
+}
+
+static int clipboard_getsize(int type, uint32_t *p)
+{
+  if (type == CF_TEXT)
+    v_printf("SDL_clipboard: GetSize of type CF_TEXT\n");
+  else if (type == CF_OEMTEXT)
+    v_printf("SDL_clipboard: GetSize of type CF_OEMTEXT\n");
+  else {
+    v_printf("SDL_clipboard: GetSize failed (type 0x%02x unsupported\n", type);
+    return FALSE;
+  }
+
+  if (!_clipboard_grab_data(type))
+    return FALSE;
+
+  if (!_clipboard_grabbed_data) {
+    v_printf("SDL_clipboard: GetSize failed (grabbed data is NULL\n");
+    return FALSE;
+  }
+
+  *p = strlen(_clipboard_grabbed_data) + 1;
+  return TRUE;
+}
+
+static int clipboard_getdata(int type, char *p)
+{
+  if (type == CF_TEXT)
+    v_printf("SDL_clipboard: GetData of type CF_TEXT\n");
+  else if (type == CF_OEMTEXT)
+    v_printf("SDL_clipboard: GetData of type CF_OEMTEXT\n");
+  else {
+    v_printf("SDL_clipboard: GetData failed (type 0x%02x unsupported\n", type);
+    return FALSE;
+  }
+
+  if (!_clipboard_grabbed_data) {
+    v_printf("SDL_clipboard: GetData failed (grabbed_data is NULL)\n");
+    return FALSE;
+  }
+
+  /* Since the GetSize function must have been called to set the grabbed
+   * data we can be fairly certain that the caller has allocated a correctly
+   * sized buffer to receive this */
+  strcpy(p, _clipboard_grabbed_data);
+  return TRUE;
+}
+
+static struct clipboard_system Clipboard_SDL =
+{
+  clipboard_clear,
+  clipboard_write,
+  clipboard_getsize,
+  clipboard_getdata,
+  "sdl",
+};
+
 
 static int SDL_mouse_init(void)
 {
