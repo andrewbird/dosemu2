@@ -38,7 +38,7 @@ _LIBSUBDIRS=base/video base/dev/vga base/core base/kbd_unicode \
 	base/emu-i386 $(XCPUEMU) base/speaker \
 	base/dev/pic base/dev/ne2k \
 	dosext/mfs dosext/misc dosext/builtins \
-	base/init base/serial base/mouse \
+	base/init base/serial base/emuclip base/mouse \
 	base/dev/dma base/lib/translate \
 	$(NET) $(IPX) $(SBEMU) dosext/drivers base/bios base/bios/x86 \
 	$(DPMI)

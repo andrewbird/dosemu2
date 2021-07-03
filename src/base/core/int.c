@@ -26,6 +26,7 @@
 #include "serial.h"
 #include "memory.h"
 #include "timers.h"
+#include "clipboard.h"
 #include "mouse.h"
 #include "disks.h"
 #include "bios.h"
@@ -580,6 +581,10 @@ static int dos_helper(int stk_offs, int revect)
     case DOS_HELPER_SERIAL_HELPER:	/* Serial helper */
 	serial_helper();
 	break;
+
+    case DOS_HELPER_EMUCLIP_HELPER:     /* Clipboard helper */
+        emuclip_helper();
+        break;
 
     case DOS_HELPER_MOUSE_HELPER:{
 	    uint8_t *p = MK_FP32(BIOSSEG, bios_in_int10_callback);

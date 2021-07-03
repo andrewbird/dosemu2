@@ -1,3 +1,6 @@
+#ifndef CLIPBOARD_H
+#define CLIPBOARD_H
+
 #include <stdint.h>
 
 /* Text format. Each line ends with a carriage return/linefeed (CR-LF)
@@ -26,3 +29,7 @@ struct clipboard_system
 extern struct clipboard_system *Clipboard;
 
 extern int register_clipboard_system(struct clipboard_system *cs);
+
+extern void emuclip_helper(void);
+
+#endif
