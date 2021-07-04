@@ -3000,6 +3000,14 @@ $_debug = "-D+d"
 
         self.assertIn(self.systype, systypeline)
 
+    def test_driver(self):
+        """Driver"""
+        self.runDosemu("version.bat", config="""\
+$_hdimage = "dXXXXs/c:hdtype1 +1"
+$_debug = "-D+v"
+$_clipboard_support = (on)
+""")
+
     def _test_memory_dpmi_ecm(self, name):
         ename = "%s.com" % name
         edir = self.topdir / "test" / "ecm" / "dpmitest"

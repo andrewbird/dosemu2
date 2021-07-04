@@ -10,5 +10,6 @@ devicehigh=dosemu\ems.sys
 rem emufs.sys /all replaces emufs.com
 devicehigh=dosemu\emufs.sys /all
 devicehigh=dosemu\cdrom.sys
+device=d:\dosemu\emuclip.sys
 set SHELL_ALLOW_EXIT=1
 shellhigh=command.com /e:384 /p /k %FDPP_AUTOEXEC%
