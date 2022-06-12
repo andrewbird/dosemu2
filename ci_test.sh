@@ -10,13 +10,19 @@ if [ "${TRAVIS}" = "true" ] ; then
   export CI="true"
   if [ "${TRAVIS_EVENT_TYPE}" = "cron" ] ; then
     export CI_EVENT="cron"
+  else
+    export CI_EVENT="normal"
   fi
   export CI_BRANCH="${TRAVIS_BRANCH}"
 
 elif [ "${GITHUB_ACTIONS}" = "true" ] ; then
   # CI is already set
-  if [ "${GITHUB_EVENT_NAME}" = "scheduled" ] ; then
+  if [ "${GITHUB_EVENT_NAME}" = "schedule" ] ; then
     export CI_EVENT="cron"
+  elif [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "${GITHUB_REPOSITORY_OWNER}" = "dosemu2"] && [ "${GITHUB_REF_NAME}" = "devel" ] ; then
+    export CI_EVENT="simple"
+  else
+    export CI_EVENT="normal"
   fi
   export CI_BRANCH="$(echo ${GITHUB_REF} | cut -d/ -f3)"
 fi
@@ -56,10 +62,12 @@ if [ "${CI_EVENT}" = "cron" ] ; then
     python3 test/test_dos.py
   fi
 else
-  if [ "${CI_BRANCH}" = "devel" ] ; then
-    python3 test/test_dos.py PPDOSGITTestCase MSDOS622TestCase
-  else
+  export SKIP_EXPENSIVE=1
+  export SKIP_UNCERTAIN=1
+  if [ "${CI_EVENT}" = "simple" ] ; then
     python3 test/test_dos.py PPDOSGITTestCase
+  else
+    python3 test/test_dos.py PPDOSGITTestCase MSDOS622TestCase
   fi
 fi
 
