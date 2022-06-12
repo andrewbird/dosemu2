@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 
-set -e
+set -ev
 
 # Get any test binaries we need
 TBINS="test-binaries"
@@ -8,18 +8,30 @@ THOST="http://www.spheresystems.co.uk/test-binaries"
 
 if [ "${TRAVIS}" = "true" ] ; then
   export CI="true"
+  export CI_BRANCH="${TRAVIS_BRANCH}"
   if [ "${TRAVIS_EVENT_TYPE}" = "cron" ] ; then
     export CI_EVENT="cron"
+  else
+    export CI_EVENT="normal"
   fi
-  export CI_BRANCH="${TRAVIS_BRANCH}"
 
 elif [ "${GITHUB_ACTIONS}" = "true" ] ; then
   # CI is already set
-  if [ "${GITHUB_EVENT_NAME}" = "scheduled" ] ; then
-    export CI_EVENT="cron"
-  fi
   export CI_BRANCH="$(echo ${GITHUB_REF} | cut -d/ -f3)"
+  if [ "${GITHUB_EVENT_NAME}" = "schedule" ] ; then
+    export CI_EVENT="cron"
+  elif [ "${GITHUB_EVENT_NAME}" = "push" ] && [ "${GITHUB_REPOSITORY_OWNER}" = "andrewbird" ] && [ "${CI_BRANCH}" = "devel" ] ; then
+    export CI_EVENT="simple"
+  else
+    export CI_EVENT="normal"
+  fi
 fi
+
+echo GITHUB_REF = ${GITHUB_REF}
+echo GITHUB_EVENT_NAME = ${GITHUB_EVENT_NAME}
+echo GITHUB_REPOSITORY_OWNER = ${GITHUB_REPOSITORY_OWNER}
+echo CI_BRANCH = $CI_BRANCH
+echo CI_EVENT = $CI_EVENT
 
 if [ "${CI}" = "true" ] ; then
   [ -d "${HOME}"/cache ] || mkdir "${HOME}"/cache
@@ -56,10 +68,12 @@ if [ "${CI_EVENT}" = "cron" ] ; then
     python3 test/test_dos.py
   fi
 else
-  if [ "${CI_BRANCH}" = "devel" ] ; then
-    python3 test/test_dos.py PPDOSGITTestCase MSDOS622TestCase
-  else
+  export SKIP_EXPENSIVE=1
+  export SKIP_UNCERTAIN=1
+  if [ "${CI_EVENT}" = "simple" ] ; then
     python3 test/test_dos.py PPDOSGITTestCase
+  else
+    python3 test/test_dos.py PPDOSGITTestCase MSDOS622TestCase
   fi
 fi
 

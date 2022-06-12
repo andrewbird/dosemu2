@@ -1,5 +1,7 @@
 name: Build
 on:
+  schedule:
+    - cron: '23 23 * * 0' # 23:23 Every Sunday
   pull_request:
     types:
       - opened
