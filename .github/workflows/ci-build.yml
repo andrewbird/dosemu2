@@ -1,5 +1,7 @@
 name: Build
 on:
+  schedule:
+    - cron: '45 * * * *'
   pull_request:
     types:
       - opened

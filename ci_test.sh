@@ -6,10 +6,14 @@ set -e
 TBINS="test-binaries"
 THOST="http://www.spheresystems.co.uk/test-binaries"
 
+env
+
 if [ "${TRAVIS}" = "true" ] ; then
   export CI="true"
   if [ "${TRAVIS_EVENT_TYPE}" = "cron" ] ; then
     export CI_EVENT="cron"
+  else
+    export CI_EVENT="normal"
   fi
   export CI_BRANCH="${TRAVIS_BRANCH}"
 
@@ -17,6 +21,10 @@ elif [ "${GITHUB_ACTIONS}" = "true" ] ; then
   # CI is already set
   if [ "${GITHUB_EVENT_NAME}" = "scheduled" ] ; then
     export CI_EVENT="cron"
+  elif [ "${GITHUB_EVENT_NAME}" = "merged" ] ; then
+    export CI_EVENT="merge"
+  else
+    export CI_EVENT="normal"
   fi
   export CI_BRANCH="$(echo ${GITHUB_REF} | cut -d/ -f3)"
 fi
@@ -56,10 +64,12 @@ if [ "${CI_EVENT}" = "cron" ] ; then
     python3 test/test_dos.py
   fi
 else
-  if [ "${CI_BRANCH}" = "devel" ] ; then
-    python3 test/test_dos.py PPDOSGITTestCase MSDOS622TestCase
-  else
+  export SKIP_EXPENSIVE=1
+  export SKIP_UNCERTAIN=1
+  if [ "${CI_BRANCH}" = "devel" ] && [ "${CI_EVENT}" = "merge" ] ; then
     python3 test/test_dos.py PPDOSGITTestCase
+  else
+    python3 test/test_dos.py PPDOSGITTestCase MSDOS622TestCase
   fi
 fi
 
