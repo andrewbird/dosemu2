@@ -265,6 +265,11 @@ static int emufs_loaded = FALSE;
 #define DOS_SEEK_CUR 1
 #define DOS_SEEK_EOF 2
 
+#define MAX_BYTES_PER_SECTOR_36 0x200
+#define MAX_BYTES_PER_SECTOR_7303 32768
+#define MAX_CLUSTER_SIZE_36 64
+#define MAX_CLUSTER_SIZE_7303 128
+
 enum {DRV_NOT_FOUND, DRV_FOUND, DRV_NOT_ASSOCIATED};
 
 enum { TYPE_NONE, TYPE_DISK, TYPE_PRINTER };
@@ -786,20 +791,14 @@ static int dos_get_disk_space(const char *cwd, unsigned int *free, unsigned int 
     _free = fsbuf.f_bsize * fsbuf.f_bavail / (_bps * _spc);
     _total = fsbuf.f_bsize * fsbuf.f_blocks / (_bps * _spc);
 
-    while (_spc < 64 && _total > 65535) {
-      _spc *= 2;
-      _free /= 2;
-      _total /= 2;
-    }
-
     *bps = _bps;
     *spc = _spc;
     *total = _total;
     *free = _free;
-    return (1);
+    return 1;
   }
   else
-    return (0);
+    return 0;
 }
 
 /*
@@ -811,7 +810,8 @@ int mfs_fat32(void)
   char *src = MK_FP32(_DS, _DX);
   unsigned int dest = SEGOFF2LINEAR(_ES, _DI);
   int carry = isset_CF();
-  unsigned int spc, bps, free, tot;
+  unsigned int spc, bps, fre, tot;
+  unsigned int max_spc, max_bps;
   int dd;
 
   NOCARRY;
@@ -837,17 +837,36 @@ int mfs_fat32(void)
     goto donthandle;
   }
 
-  if (!dos_get_disk_space(drives[dd].root, &free, &tot, &spc, &bps))
+  if (!dos_get_disk_space(drives[dd].root, &fre, &tot, &spc, &bps))
     goto donthandle;
+
+  if (config.mfs_max_cluster_size) {
+    max_spc = config.mfs_max_cluster_size;
+  } else {
+    max_spc = MAX_CLUSTER_SIZE_7303;
+  }
+  max_bps = MAX_BYTES_PER_SECTOR_7303;
+
+  while (tot > 65535 && spc < max_spc) {
+    spc *= 2;
+    fre /= 2;
+    tot /= 2;
+  }
+
+  while (tot > 65535 && bps < max_bps) {
+    bps *= 2;
+    fre /= 2;
+    tot /= 2;
+  }
 
   WRITE_DWORD(dest, 0x24);
   WRITE_DWORD(dest + 0x4, spc);
   WRITE_DWORD(dest + 0x8, bps);
-  WRITE_DWORD(dest + 0xc, free);
+  WRITE_DWORD(dest + 0xc, fre);
   WRITE_DWORD(dest + 0x10, tot);
-  WRITE_DWORD(dest + 0x14, free * spc);
+  WRITE_DWORD(dest + 0x14, fre * spc);
   WRITE_DWORD(dest + 0x18, tot * spc);
-  WRITE_DWORD(dest + 0x1c, free);
+  WRITE_DWORD(dest + 0x1c, fre);
   WRITE_DWORD(dest + 0x20, tot);
   return 1;
 
@@ -3575,20 +3594,35 @@ static int dos_fs_redirect(struct vm86_regs *state, char *stk)
 
         if (dos_get_disk_space(drives[dd].root, &free, &tot, &spc, &bps)) {
           u_short *userStack = (u_short *)sda_user_stack(sda);
-          if (userStack[0] == 0x7303) { /* called from FAT32 function */
-            while (tot > 65535 && spc < 128) {
-              spc *= 2;
-              free /= 2;
-              tot /= 2;
-            }
-            while (tot > 65535 && bps < 32768) {
-              bps *= 2;
-              free /= 2;
-              tot /= 2;
-            }
+          unsigned int max_spc, max_bps;
+
+          if (config.mfs_max_cluster_size) {
+            max_spc = config.mfs_max_cluster_size;
+          } else if (userStack[0] == 0x7303) { /* called from FAT32 function */
+            max_spc = MAX_CLUSTER_SIZE_7303;
+          } else {
+            max_spc = MAX_CLUSTER_SIZE_36;
           }
-          /* report no more than 32*1024*64K = 2G, even if some
-             DOS version 7 can see more */
+
+          if (userStack[0] == 0x7303) { /* called from FAT32 function */
+            max_bps = MAX_BYTES_PER_SECTOR_7303;
+          } else {
+            max_bps = MAX_BYTES_PER_SECTOR_36;
+          }
+
+          while (tot > 65535 && spc < max_spc) {
+            spc *= 2;
+            free /= 2;
+            tot /= 2;
+          }
+
+          while (tot > 65535 && bps < max_bps) {
+            bps *= 2;
+            free /= 2;
+            tot /= 2;
+          }
+
+          /* clamp values */
           if (tot > 65535)
             tot = 65535;
           if (free > 65535)

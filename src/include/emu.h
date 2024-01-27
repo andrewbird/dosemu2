@@ -291,6 +291,8 @@ typedef struct config_info {
        char *tty_lockfile;	/* Lock file pretext ie LCK.. */
        boolean tty_lockbinary;	/* Binary lock files ? */
 
+       int mfs_max_cluster_size; /* maximum cluster size used to report free/total space */
+
        /* LFN support */
        boolean lfn;
        int int_hooks;

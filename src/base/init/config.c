@@ -259,6 +259,7 @@ void dump_config_status(void (*printfunc)(const char *, ...))
         config.tty_lockdir, config.tty_lockfile, config.tty_lockbinary);
     (*print)("num_ser %d\nnum_lpt %d\nfastfloppy %d\nfile_lock_limit %d\n",
         config.num_ser, config.num_lpt, config.fastfloppy, config.file_lock_limit);
+    (*print)("mfs_max_cluster_size %d\n", config.mfs_max_cluster_size);
     (*print)("emusys \"%s\"\n",
         (config.emusys ? config.emusys : ""));
     (*print)("vbios_post %d\ndetach %d\n",
