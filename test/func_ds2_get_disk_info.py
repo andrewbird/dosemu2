@@ -2,7 +2,7 @@ import re
 
 from os import statvfs
        
-def ds2_get_disk_info(self):
+def doit(self, config=None):
 
     path = "C:\\"
 
@@ -90,10 +90,17 @@ int main(int argc, char *argv[]) {
 }
 """)
 
-    results = self.runDosemu("testit.bat", config="""\
+    if config:
+        return self.runDosemu("testit.bat", config=config)
+    else:
+        return self.runDosemu("testit.bat", config="""\
 $_hdimage = "dXXXXs/c:hdtype1 +1"
 $_floppy_a = ""
 """)
+
+
+def ds2_get_disk_info(self):
+    results = doit(self)
 
     self.assertNotIn("Call failed", results)
 
@@ -123,3 +130,35 @@ $_floppy_a = ""
     msg = "avail dos %d, linux %d" % (dfs_avail, lfs_avail)
     self.assertLessEqual(dfs_avail, lfs_avail * 1.05, msg)
     self.assertGreaterEqual(dfs_avail, lfs_avail * 0.95, msg)
+
+
+def ds2_get_disk_info_clstr(self, clstr, size):
+
+    fsinfo = statvfs(self.workdir)
+    lfs_avail = fsinfo.f_bavail * fsinfo.f_bsize
+
+    if lfs_avail < 4 * 1024 * 1024 * 1024:
+        self.skipTest("requires 4gb free disk space")
+
+    config="""\                         
+$_hdimage = "dXXXXs/c:hdtype1 +1"                                               
+$_floppy_a = ""                                                                 
+$_mfs_max_cluster_size = (%d)
+""" % clstr
+    results = doit(self, config)
+
+    self.assertNotIn("Call failed", results)
+
+    r1 = re.compile(r'total_bytes\((\d+)\)')
+    self.assertRegex(results, r1)
+    t = r1.search(results)
+    dfs_total = int(t.group(1))
+
+    r2 = re.compile(r'avail_bytes\((\d+)\)')
+    self.assertRegex(results, r2)
+    a = r2.search(results)
+    dfs_avail = int(a.group(1))
+
+    self.assertEqual(dfs_total, size)
+    self.assertEqual(dfs_avail, size)
+

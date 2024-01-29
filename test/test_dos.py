@@ -21,7 +21,7 @@ from common_framework import (BaseTestCase, get_test_binaries, main, mkstring,
 from func_cpu_trap_flag import cpu_trap_flag
 from func_ds2_file_seek_tell import ds2_file_seek_tell
 from func_ds2_file_seek_read import ds2_file_seek_read
-from func_ds2_get_disk_info import ds2_get_disk_info
+from func_ds2_get_disk_info import ds2_get_disk_info, ds2_get_disk_info_clstr
 from func_ds2_set_fattrs import ds2_set_fattrs
 from func_ds3_file_access import ds3_file_access
 from func_ds3_lock_concurrent import ds3_lock_concurrent
@@ -4005,6 +4005,18 @@ $_floppy_a = ""
     def test_ds2_get_disk_info(self):
         """DOSv2 get disk info"""
         ds2_get_disk_info(self)
+
+    def test_ds2_get_disk_info_clstr_032(self):
+        """DOSv2 get disk info cluster max 32"""
+        ds2_get_disk_info_clstr(self, 32, 32 * 0xffff * 0x200)
+
+    def test_ds2_get_disk_info_clstr_064(self):
+        """DOSv2 get disk info cluster max 64"""
+        ds2_get_disk_info_clstr(self, 64, 64 * 0xffff * 0x200)
+
+    def test_ds2_get_disk_info_clstr_128(self):
+        """DOSv2 get disk info cluster max 128"""
+        ds2_get_disk_info_clstr(self, 128, 128 * 0xffff * 0x200)
 
     def test_lfs_disk_info_fat32(self):
         """LFS disk info FAT32"""
