@@ -4566,11 +4566,15 @@ $_floppy_a = ""
 
     def test_network_pktdriver_mtcp_builtin(self):
         """Network pktdriver mTCP built-in"""
+        if environ.get("SKIP_NETWORK"):
+            self.skipTest("network test")
         network_pktdriver_mtcp(self, 'builtin')
     test_network_pktdriver_mtcp_builtin.nettest = True
 
     def test_network_pktdriver_mtcp_ne2000(self):
         """Network pktdriver mTCP NE2000"""
+        if environ.get("SKIP_NETWORK"):
+            self.skipTest("network test")
         network_pktdriver_mtcp(self, 'ne2000')
     test_network_pktdriver_mtcp_ne2000.nettest = True
 
