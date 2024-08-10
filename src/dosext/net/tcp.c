@@ -35,6 +35,7 @@
 
 static const char *DEFAULT_DNS = "8.8.8.8";
 static const char *DEFAULT_NTP = "pool.ntp.org";
+static const char *DEFAULT_DOMAIN = "localdomain";
 
 static uint16_t tcp_hlt_off;
 static int tcp_tid;
@@ -93,10 +94,24 @@ struct driver_info_rec {
     uint16_t tcp_mss;
     uint16_t tcp_rwin;
     uint16_t debug;
-    char domain[255];
-};
+    uint8_t domlen; char domain[255]; /* This is a pascal string */
+
+/*
+    from https://web.archive.org/web/20100127193745/http://alumnus.caltech.edu/~dank/trumpet/tabi32.zip
+    they seem to be in the v3.x stack.
+ */
+    #define DNSLISTLEN (4)
+    #define TIMELISTLEN (4)
+    uint32_t dns_list[DNSLISTLEN];
+    uint32_t time_list[TIMELISTLEN];
+    uint32_t ip_dropped;
+    uint32_t tcp_dropped;
+    uint32_t udp_dropped;
+} __attribute__((packed));
+static_assert(sizeof(struct driver_info_rec) == 286 + 44, "bad driver_info_rec size");
 
 struct session_info_rec {
+/* this is the v3.x version, the v2.x doesn't have the ports */
     uint32_t ip_srce;
     uint16_t port_src;
     uint32_t ip_dest;
@@ -104,6 +119,7 @@ struct session_info_rec {
     uint8_t ip_prot;
     uint8_t active;
 } __attribute__((packed));
+static_assert(sizeof(struct session_info_rec) == 14, "bad session_info_rec size");
 
 struct ses_wrp {
     struct session_info_rec si;
@@ -325,6 +341,7 @@ static int get_driver_info(struct driver_info_rec *di_out)
     }
     if (it) {
         struct driver_info_rec di;
+        int len;
         struct sockaddr_in *sin = (struct sockaddr_in *)it->ifa_addr;
         struct sockaddr_in *sinm = (struct sockaddr_in *)it->ifa_netmask;
 
@@ -340,8 +357,15 @@ static int get_driver_info(struct driver_info_rec *di_out)
         di.tcp_mss = 1500;
         di.tcp_rwin = 4096;
         di.debug = 0;
-        /* use strncpy() to 0-pad entire buffer */
-        strncpy(di.domain, "localdomain", sizeof(di.domain));
+        len = strlen(DEFAULT_DOMAIN);
+        if (len < sizeof(di.domain)) {
+            di.domlen = len;
+            /* use strncpy() to 0-pad entire buffer */
+            strncpy(di.domain, DEFAULT_DOMAIN, sizeof(di.domain));
+        } else {
+            di.domlen = 0;  /* Pascal string but we can be C friendly too. */
+            memset(di.domain, '\0', sizeof(di.domain));
+        }
         *di_out = di;
         ret = 0;
     } else {

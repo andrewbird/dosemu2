@@ -831,11 +831,11 @@ TCPDRV_driver_entry_cs:
 
 	.globl TCPDRV_driver_info
 TCPDRV_driver_info:
-	.space 288
+	.space 286 + 44
 
 	.globl TCPDRV_session_info
 TCPDRV_session_info:
-	.space 16
+	.space 14
 
 	.globl TCPDRV_iface_name
 TCPDRV_iface_name:
