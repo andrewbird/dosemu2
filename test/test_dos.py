@@ -52,6 +52,7 @@ from func_mfs_findfile import mfs_findfile
 from func_mfs_truename import mfs_truename
 from func_network import network_pktdriver_mtcp
 from func_pit_mode_2 import pit_mode_2
+from func_trumptcp import trumptcp_find_interrupt
 
 SYSTYPE_DRDOS_ENHANCED = "Enhanced DR-DOS"
 SYSTYPE_DRDOS_ORIGINAL = "Original DR-DOS"
@@ -5013,6 +5014,10 @@ $_floppy_a = ""
             self.skipTest("uncertain test")
 
         pit_mode_2(self)
+
+    def test_trumptcp_find_interrupt(self):
+        """Trumpet TCP find interrupt"""
+        trumptcp_find_interrupt(self)
 
 
 class DRDOS701TestCase(OurTestCase, unittest.TestCase):
