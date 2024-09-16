@@ -55,12 +55,11 @@ $_floppy_a = ""
     build = self.imagedir / "libi86-test"
     build.mkdir()
 
-    dosemu = self.topdir / "bin" / "dosemu"
     options = '-f {0}/dosemu.conf -n --Fimagedir {0} -o {1}'.format(self.imagedir, self.logfiles['log'][0])
     args = [
         '--x-installcheck',
         '--x-test-underlying',
-        '--x-with-dosemu=%s' % dosemu,
+        '--x-with-dosemu=%s' % self.dosemu,
         '--x-with-dosemu-options=%s' % options,
     ]
 
