@@ -4,6 +4,8 @@ on:
   schedule:
     - cron: '23 23 * * 0' # 23:23 Every Sunday
 
+  workflow_dispatch:
+
 jobs:
   asan:
     name: ASAN
@@ -28,7 +30,11 @@ jobs:
   packaged:
     name: Packaged
 
-    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v4
