@@ -35,7 +35,8 @@ from func_lfn_voln_info import lfn_voln_info
 from func_lfs_disk_info import lfs_disk_info
 from func_label_create import (label_create, label_create_on_lfns,
                                 label_create_noduplicate, label_create_nonrootdir,
-                                label_delete_wildcard, label_delete_recreate)
+                                label_delete_wildcard, label_delete_recreate,
+                                label_store_in_bpb)
 from func_lfs_file_info import lfs_file_info
 from func_lfs_file_seek_tell import lfs_file_seek_tell
 from func_libi86_testsuite import libi86_create_items
@@ -870,6 +871,11 @@ altdta:
         """FAT FCB label create no duplicate"""
         label_create_noduplicate(self, "FAT")
     test_fat_label_create_noduplicate.labeltest = True
+
+    def test_fat_label_store_in_bpb(self):
+        """FAT FCB label store in BPB"""
+        label_store_in_bpb(self)
+    test_fat_label_store_in_bpb.labeltest = True
 
     def _test_fcb_write(self, fstype):
         testdir = self.mkworkdir('d')
@@ -5154,6 +5160,7 @@ class FRDOS120TestCase(OurTestCase, unittest.TestCase):
             "test_fat_label_create_bpb32": KNOWNFAIL,
             "test_fat_label_create_prefile": KNOWNFAIL,
             "test_fat_label_create_predir": KNOWNFAIL,
+            "test_fat_label_store_in_bpb": KNOWNFAIL,
         }
 
         cls.setUpClassPost()
@@ -5217,6 +5224,7 @@ class FRDOS130TestCase(OurTestCase, unittest.TestCase):
             "test_fat_label_create_noduplicate": KNOWNFAIL,
             "test_fat_label_create_predir": KNOWNFAIL,
             "test_fat_label_create_prefile": KNOWNFAIL,
+            "test_fat_label_store_in_bpb": KNOWNFAIL,
             "test_lfs_disk_info_mfs": KNOWNFAIL,
             "test_memory_emm286_borland": KNOWNFAIL,
             "test_memory_hma_alloc": KNOWNFAIL,
@@ -5278,6 +5286,7 @@ class FRDOSGITTestCase(OurTestCase, unittest.TestCase):
             "test_fat_label_create_noduplicate": KNOWNFAIL,
             "test_fat_label_create_predir": KNOWNFAIL,
             "test_fat_label_create_prefile": KNOWNFAIL,
+            "test_fat_label_store_in_bpb": KNOWNFAIL,
             "test_memory_emm286_borland": KNOWNFAIL,
             "test_memory_hma_alloc3": UNSUPPORTED,
             "test_memory_hma_chain": UNSUPPORTED,
@@ -5492,6 +5501,7 @@ class PPDOSGITTestCase(OurTestCase, unittest.TestCase):
         cls.actions = {
             "test_floppy_img": UNSUPPORTED,
             "test_floppy_vfs": UNSUPPORTED,
+            "test_fat_label_store_in_bpb": UNSUPPORTED,
         }
 
         # Use the default files that FDPP installed

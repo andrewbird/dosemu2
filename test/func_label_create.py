@@ -708,3 +708,101 @@ int main(int argc, char *argv[])
     output = check_output(args, timeout=5, stderr=STDOUT).decode('ASCII')
     for n in names:
         self.assertIn(n, output)
+
+
+def label_store_in_bpb(self):
+    testdir = self.mkworkdir('d')
+
+    name = 'sentinel123'
+    fat = '16'
+
+    config = """\
+$_hdimage = "dXXXXs/c:hdtype1 %s:partition +1"
+$_floppy_a = ""
+""" % self.mkimage_vbr(fat, cwd=testdir)
+
+    self.mkfile("testit.bat", """\
+d:
+c:\\labcrbpb
+DIR
+rem end
+""", newline="\r\n")
+
+    self.mkcom_with_ia16("labcrbpb", r"""
+
+#include <dos.h>
+#include <stdio.h>
+#include <string.h>
+
+struct {
+  uint16_t level;       // info level
+  uint32_t serial;      // serial number (binary)
+  uint8_t  label[11];   // volume label or "NO NAME    " if none present
+  uint8_t  fstype[8];   // (AL=00h only) filesystem type
+} __attribute__((packed)) dinfo;
+
+int main(int argc, char *argv[])
+{
+  union REGS r = {};
+  struct SREGS rs;
+  char tlabel[12];
+  char tfstype[9];
+
+  char findstring[7];
+  struct find_t findstr;
+
+// check we don't have a label in the root
+  strcpy(findstring, "\\*.*");
+  if (!_dos_findfirst(findstring, _A_VOLID, &findstr)) {
+    printf("FAIL: Volume cannot have an existing label (%%s) for this test\n", findstr.name);
+    return 1;
+  }
+
+// write a label via BPB
+  memset(&dinfo, 0, sizeof(dinfo));             // set serial number
+  dinfo.serial = 0x12344321;
+  memcpy(dinfo.label, "%-11s", 11);
+  memcpy(dinfo.fstype, "%-8s", 8);
+
+  r.x.ax = 0x6901;  /* set */
+  r.x.bx = 0x0000;  /* level, default drive */
+  rs.ds = FP_SEG(&dinfo);
+  r.x.dx = FP_OFF(&dinfo);
+  intdosx(&r, &r, &rs);
+  if (r.x.cflag == 1) {
+    printf("FAIL: On set serial number (AX=0x%%04x)\n", r.x.ax);
+    return 1;
+  }
+
+// see if we have a label in the BPB
+  memset(&dinfo, 0, sizeof(dinfo));             // get serial number
+  r.x.ax = 0x6900;  /* get */
+  r.x.bx = 0x0000;  /* level, default drive */
+  rs.ds = FP_SEG(&dinfo);
+  r.x.dx = FP_OFF(&dinfo);
+  intdosx(&r, &r, &rs);
+  if (r.x.cflag == 1) {
+    printf("FAIL: On get serial number (AX=0x%%04x)\n", r.x.ax);
+    return 1;
+  }
+  memcpy(tlabel, dinfo.label, 11);
+  tlabel[11] = '\0';
+  memcpy(tfstype, dinfo.fstype, 8);
+  tfstype[8] = '\0';
+
+  printf("INFO: '%%d', '%%lX', '%%s', '%%s'\n",
+      dinfo.level, dinfo.serial, tlabel, tfstype);
+
+  printf("PASS: Operation success\n");
+  return 0;
+}
+
+""" % (name, "FAT16"))
+
+    results = self.runDosemu("testit.bat", config=config)
+
+    self.assertIn("PASS: Operation success", results)
+
+    # Check that int21/69 returns the correct label
+    self.assertRegex(results.upper(),
+        r"INFO: '0', '12344321', '%-11s', 'FAT[0-9]+\s*'" % name.upper())
