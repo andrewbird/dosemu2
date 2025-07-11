@@ -47,6 +47,7 @@ from func_memory_dpmi_japheth import memory_dpmi_japheth
 from func_memory_dpmi_leak_check import memory_dpmi_leak_check
 from func_memory_dpmi_leak_check_dos import memory_dpmi_leak_check_dos
 from func_memory_ems_borland import memory_ems_borland
+from func_memory_ems_magic import load_tests_memory_ems_magic
 from func_memory_hma import (memory_hma_freespace, memory_hma_alloc, memory_hma_a20,
                              memory_hma_alloc3, memory_hma_chain)
 from func_memory_uma import memory_uma_strategy
@@ -5104,6 +5105,7 @@ if __name__ == '__main__':
         libi86_create_items(OurTestCase)
 
     cpu_create_items(OurTestCase)
+    load_tests_memory_ems_magic(OurTestCase)
 
     argv = main_setup(OurTestCase)
     main(argv)
