@@ -161,6 +161,7 @@
 #define EMM_LOG_OUT_RAN	0x8a
 #define EMM_ILL_PHYS	0x8b
 #define EMM_INVALID_SUB	0x8f
+#define EMM_INV_ATTR_TYPE 0x90
 #define EMM_FEAT_NOSUP	0x91
 #define EMM_MOVE_OVLAP	0x92
 #define EMM_MOVE_SIZE   0x93
@@ -994,7 +995,12 @@ handle_attribute(struct vm86_regs * state)
 
       Kdebug0(("SET_ATT on handle %d\n", handle));
 
-      SETHI_BYTE(state->eax, EMM_FEAT_NOSUP);
+      if (LO_BYTE(state->ebx) == EMM_VOLATILE)
+        SETHI_BYTE(state->eax, EMM_NO_ERR);
+      else if (LO_BYTE(state->ebx) == EMM_NONVOLATILE)
+        SETHI_BYTE(state->eax, EMM_FEAT_NOSUP);
+      else
+        SETHI_BYTE(state->eax, EMM_INV_ATTR_TYPE);
       return (TRUE);
     }
 
