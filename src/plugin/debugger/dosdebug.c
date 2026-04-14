@@ -542,9 +542,11 @@ int main (int argc, char **argv)
         }
       }
 
-      if (FD_ISSET(fddbgin, &readfds))
-        if (!handle_dbg_input(&ret))
+      if (FD_ISSET(fddbgin, &readfds)) {
+        int err;
+        if (!handle_dbg_input(&err))
           break;
+      }
 
     } else {
       if (kill_timeout != FOREVER) {
