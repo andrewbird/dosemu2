@@ -35,6 +35,7 @@ from func_ds3_share_open_twice import ds3_share_open_twice
 from func_fat_img_d_writable import fat_img_d_writable
 from func_fcb import (fcb_delete_common, fcb_find_common, fcb_read, fcb_read_alt_dta,
                       fcb_rename_common, fcb_write)
+from func_fcb_parsefn import fcb_parsefn
 from func_floppy import floppy_img, floppy_vfs
 from func_ioctl import drv_removable
 from func_lfn_support import lfn_support
@@ -279,6 +280,11 @@ class OurTestCase(BaseTestCase):
     def test_fat_label_delete_wildcard(self):
         """FAT FCB label delete wildcard"""
         label_delete_wildcard(self, "FAT")
+
+    @mark('fcbtest')
+    def test_fcb_parsefn(self):
+        """FCB Parse Filename"""
+        fcb_parsefn(self)
 
     @mark('fcbtest')
     def test_fat_fcb_read(self):
@@ -1626,6 +1632,7 @@ FRDOS120TestCase = frdos120(OurTestCase, {
     "test_fat_label_create_nonrootdir": KNOWNFAIL,
     "test_fat_label_create_prefile": KNOWNFAIL,
     "test_fat_label_create_predir": KNOWNFAIL,
+    "test_fcb_parsefn": KNOWNFAIL,
     "test_sfn_truename": KNOWNFAIL,
     "test_sfn_findfirst": KNOWNFAIL,
 })
@@ -1668,6 +1675,7 @@ FRDOS130TestCase = frdos130(OurTestCase, {
     "test_fat_label_create_nonrootdir": KNOWNFAIL,
     "test_fat_label_create_predir": KNOWNFAIL,
     "test_fat_label_create_prefile": KNOWNFAIL,
+    "test_fcb_parsefn": KNOWNFAIL,
     "test_lfs_disk_info_fat32": KNOWNFAIL,
     "test_lfs_disk_info_mfs": KNOWNFAIL,
     "test_memory_emm286_borland": KNOWNFAIL,
