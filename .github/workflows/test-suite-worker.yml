@@ -108,9 +108,9 @@ jobs:
         BASE_SHA: ${{ github.event.pull_request.base.sha }}
       run: ./ci_test.sh
 
-    - name: Upload failure logs
-      if: ${{ always() && (steps.test.outcome == 'failure') }}
+    - name: Upload logs
+      if: ${{ always() }}
       uses: actions/upload-artifact@v6
       with:
-        name: failure-logs-${{ format('{0}-{1}-{2}', inputs.bldtype, inputs.runtype, inputs.os) }}
+        name: logs-${{ format('{0}-{1}-{2}', inputs.bldtype, inputs.runtype, inputs.os) }}
         path: test_*

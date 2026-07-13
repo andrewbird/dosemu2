@@ -998,8 +998,8 @@ class MyTestResult(unittest.TextTestResult):
             self.stream.write('.')
             self.stream.flush()
 
-        for _, l in test.logfiles.items():
-            l[0].unlink(missing_ok=True)
+#        for _, l in test.logfiles.items():
+#            l[0].unlink(missing_ok=True)
 
     def addSubTest(self, test, subtest, err):
         super(MyTestResult, self).addSubTest(test, subtest, err)

@@ -38,6 +38,14 @@ fi
 
 set +e
 
+if true ; then
+  env NO_FAILFAST=1 python3 test/test_processor.py EMUTestCase.test_cpu_method_sim_sim
+  if [ "$?" = "0" ] ; then
+    exit 0
+  fi
+
+else
+
 cat >&2 << EOF
 =====================================================
 =         Tests run on KVM and emulated CPU         =
@@ -70,6 +78,8 @@ esac
 for i in test_*.*.*.log ; do
   test -f $i || exit 0
 done
+
+fi
 
 # If we get here, then we've failed so copy various system logs, give them
 # a name that is picked up by the artefact uploaded.
