@@ -1,16 +1,20 @@
 import re
 
 
-def get_country(self):
+def get_country(self, func):
 
-    self.mkbat_testit("getcntry")
+    self.mkfile("testit.bat", f"""\
+c:\\getcntry {func}
+rem end
+""", newline="\r\n")
+
     self.mkcom_with_ia16("getcntry", r"""\
 #include <dos.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 
-struct {
+struct cinfo_s {
   uint16_t fmt_date;
   char sym_currency[5];
   char sep_thousand[2];
@@ -25,6 +29,14 @@ struct {
   uint8_t reserved[10];
 } __attribute__((packed)) cinfo;
 
+struct {
+  uint8_t info_id;
+  uint16_t info_size;
+  uint16_t country_id;
+  uint16_t codepage;
+  struct cinfo_s cinfo;
+  uint8_t padding[20];
+} __attribute__((packed)) cinfo6501;
 
 uint8_t call_far_with_al(uint16_t seg, uint16_t offset, uint8_t input_al) {
   uint8_t output_al;
@@ -51,44 +63,84 @@ int main(int argc, char *argv[])
   union REGS r = {};
   struct SREGS rs;
   char mychar;
+  struct cinfo_s *c;
 
-  memset(&cinfo, 0x90, sizeof cinfo);
-
-  segread(&rs);
-
-  r.x.ax = 0x3800;  /* get */
-  rs.ds = FP_SEG(&cinfo);
-  r.x.dx = FP_OFF(&cinfo);
-  intdosx(&r, &r, &rs);
-  if (r.x.cflag == 1) {
-    printf("FAIL: On get (AX=0x%04x)\n", r.x.ax);
+  if (argc < 2) {
+    printf("FAIL: Missing argument (38|6501)\n");
     return 1;
   }
 
-  printf("INFO: fmt_date = '%d'\n", cinfo.fmt_date);
+  if (strcmp(argv[1], "38") == 0) {
+    memset(&cinfo, 0x90, sizeof cinfo);
+
+    segread(&rs);
+
+    r.x.ax = 0x3800;  /* get */
+    rs.ds = FP_SEG(&cinfo);
+    r.x.dx = FP_OFF(&cinfo);
+    intdosx(&r, &r, &rs);
+    if (r.x.cflag == 1) {
+      printf("FAIL: On get (AX=0x%04x)\n", r.x.ax);
+      return 1;
+    }
+
+    c = &cinfo;
+
+  } else if (strcmp(argv[1], "6501") == 0) {
+
+    memset(&cinfo6501, 0x90, sizeof cinfo6501);
+
+    segread(&rs);
+
+    r.x.ax = 0x6501;  /* get */
+    r.x.bx = 0xffff;  /* code page */
+    r.x.cx = sizeof cinfo6501;
+    r.x.dx = 0xffff;  /* country ID */
+    rs.es = FP_SEG(&cinfo6501);
+    r.x.di = FP_OFF(&cinfo6501);
+    intdosx(&r, &r, &rs);
+    if (r.x.cflag == 1) {
+      printf("FAIL: On get (AX=0x%04x)\n", r.x.ax);
+      return 1;
+    }
+    printf("INFO: size of country info received = '%d'\n", r.x.cx);
+
+    c = &cinfo6501.cinfo;
+
+    printf("INFO: info_id = '%d'\n", cinfo6501.info_id);
+    printf("INFO: info_size = '%d'\n", cinfo6501.info_size);
+    printf("INFO: country_id = '%d'\n", cinfo6501.country_id);
+    printf("INFO: codepage = '%d'\n", cinfo6501.codepage);
+
+  } else {
+    printf("FAIL: Invalid argument '%s' != (38|6501)\n", argv[1]);
+    return 1;
+  }
+
+  printf("INFO: fmt_date = '%d'\n", c->fmt_date);
 
   printf("INFO: sym_currency = '0x%02x,0x%02x,0x%02x,0x%02x,0x%02x'\n",
-      cinfo.sym_currency[0] & 0xff,
-      cinfo.sym_currency[1] & 0xff,
-      cinfo.sym_currency[2] & 0xff,
-      cinfo.sym_currency[3] & 0xff,
-      cinfo.sym_currency[4] & 0xff);
+      c->sym_currency[0] & 0xff,
+      c->sym_currency[1] & 0xff,
+      c->sym_currency[2] & 0xff,
+      c->sym_currency[3] & 0xff,
+      c->sym_currency[4] & 0xff);
 
-  printf("INFO: sep_thousand = '%s'\n", cinfo.sep_thousand);
-  printf("INFO: sep_decimal = '%s'\n", cinfo.sep_decimal);
-  printf("INFO: sep_date = '%s'\n", cinfo.sep_date);
-  printf("INFO: sep_time = '%s'\n", cinfo.sep_time);
+  printf("INFO: sep_thousand = '%s'\n", c->sep_thousand);
+  printf("INFO: sep_decimal = '%s'\n", c->sep_decimal);
+  printf("INFO: sep_date = '%s'\n", c->sep_date);
+  printf("INFO: sep_time = '%s'\n", c->sep_time);
 
-  printf("INFO: fmt_currency = '%u'\n", cinfo.fmt_currency);
-  printf("INFO: num_curdigits = '%u'\n", cinfo.num_curdigits);
-  printf("INFO: fmt_time = '%u'\n", cinfo.fmt_time);
+  printf("INFO: fmt_currency = '%u'\n", c->fmt_currency);
+  printf("INFO: num_curdigits = '%u'\n", c->num_curdigits);
+  printf("INFO: fmt_time = '%u'\n", c->fmt_time);
 
-  printf("INFO: func_upcase = '%04X:%04X'\n", FP_SEG(cinfo.func_upcase), FP_OFF(cinfo.func_upcase));
+  printf("INFO: func_upcase = '%04X:%04X'\n", FP_SEG(c->func_upcase), FP_OFF(c->func_upcase));
 
-  printf("INFO: sep_datalist = '%s'\n", cinfo.sep_datalist);
+  printf("INFO: sep_datalist = '%s'\n", c->sep_datalist);
 
   // Let's call the upcase routine.
-  mychar = call_far_with_al(FP_SEG(cinfo.func_upcase), FP_OFF(cinfo.func_upcase), 'b');
+  mychar = call_far_with_al(FP_SEG(c->func_upcase), FP_OFF(c->func_upcase), 'b');
   printf("INFO: upcased_char = '%c'\n", mychar);
 
   return 0;
@@ -104,6 +156,15 @@ int main(int argc, char *argv[])
         env = {"LANG": "en_GB.UTF-8"}
 
     results = self.runDosemu("testit.bat", env=env)
+
+    if (func == '6501'):
+        self.assertIn("INFO: info_id = '1'", results)
+        if 'FR-DOS' in self.prettyname or 'FDPP' in self.version:
+            self.assertIn("INFO: info_size = '28'", results)  # No reserved area in structure
+        else:
+            self.assertIn("INFO: info_size = '38'", results)
+        self.assertIn("INFO: country_id = '44'", results)
+        self.assertIn("INFO: codepage = '850'", results)
 
     self.assertIn("INFO: fmt_date = '1'", results)
 

@@ -107,9 +107,14 @@ class OurTestCase(BaseTestCase):
         drv_removable(self)
 
     @mark('nlstest')
-    def test_get_country(self):
-        """Get country settings"""
-        get_country(self)
+    def test_get_country38(self):
+        """Get country settings int21/38"""
+        get_country(self, "38")
+
+    @mark('nlstest')
+    def test_get_country6501(self):
+        """Get country settings int21/6501"""
+        get_country(self, "6501")
 
     def test_mscdex_stub(self):
         """MSCDEX stub answers with no CD-ROM drive"""
